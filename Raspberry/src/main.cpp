@@ -1,8 +1,10 @@
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
 #include "../include/defaults.h"
+#include "../include/model.h"
 
 struct config {
     std::string model     = MODEL_DEFAULT;
@@ -49,4 +51,27 @@ int main(int argc, char** argv) {
             cf.rec_file.c_str()
         );
     }
+
+    CameraPreprocessor camera;
+
+    TfliteImageClassifier classifier("model.tflite");
+
+    if (!classifier.ok()) {
+        std::cerr << classifier.error_message() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    const ImageModelInputInfo& input = classifier.input_info();
+
+    std::cout << "Input: "
+            << input.height << "x"
+            << input.width << "x"
+            << input.channels << "\n";
+
+    ClassificationResult result = classifier.Predict(camera);
+
+    std::cout << "Class: " << result.class_index
+            << ", score: " << result.score << "\n";
+
+    return EXIT_SUCCESS;
 }
