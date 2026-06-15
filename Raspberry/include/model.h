@@ -31,23 +31,27 @@ struct ClassificationResult {
 class TfliteImageClassifier {
 public:
     explicit TfliteImageClassifier(const std::string& model_path);
+    explicit TfliteImageClassifier(const std::string& model_path, int height, int width) {
+        input_info_.height = height;
+        input_info_.width  = width;
+    }
+
     ~TfliteImageClassifier();
 
     bool ok() const;
-    const std::string& error_message() const;
-
+    const std::string& errmsg() const;
     const ImageModelInputInfo& input_info() const;
-    int class_count() const;
+    int numclasses() const;
 
-    ClassificationResult Predict(CameraPreprocessor& camera);
+    ClassificationResult predict(CameraPreprocessor& camera);
 
 private:
     struct Impl;
 
-    bool Load(const std::string& model_path);
-    bool FillInputFromCamera(CameraPreprocessor& camera);
-    bool Invoke();
-    std::vector<float> ReadOutputScores() const;
+    bool load(const std::string& model_path);
+    bool fill_input_from_camera(CameraPreprocessor& camera);
+    bool invoke();
+    std::vector<float> read_output_scores() const;
 
 private:
     std::unique_ptr<Impl> impl_;

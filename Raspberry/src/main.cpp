@@ -54,24 +54,26 @@ int main(int argc, char** argv) {
 
     CameraPreprocessor camera;
 
-    TfliteImageClassifier classifier("model.tflite");
-
+    TfliteImageClassifier classifier(cf.model);
     if (!classifier.ok()) {
-        std::cerr << classifier.error_message() << "\n";
+        std::cerr << classifier.errmsg() << "\n";
         return EXIT_FAILURE;
     }
 
     const ImageModelInputInfo& input = classifier.input_info();
 
-    std::cout << "Input: "
-            << input.height << "x"
-            << input.width << "x"
-            << input.channels << "\n";
+    if (cf.verbose) {
+        printf(
+            "[INFO] Input: %dx%dx%d\n", 
+            input.height,
+            input.width,
+            input.channels
+        );
+    }
 
-    ClassificationResult result = classifier.Predict(camera);
+    ClassificationResult result = classifier.predict(camera);
 
-    std::cout << "Class: " << result.class_index
-            << ", score: " << result.score << "\n";
+    printf("[INFO] Class: %d, score: %f\n", result.class_index, result.score);
 
     return EXIT_SUCCESS;
 }

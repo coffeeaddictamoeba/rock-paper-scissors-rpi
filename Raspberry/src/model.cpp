@@ -15,11 +15,11 @@
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model_builder.h"
 
-bool IsSupportedTensorType(TfLiteType type) {
+bool is_tensor_type_supported(TfLiteType type) {
     return type == kTfLiteFloat32 || type == kTfLiteInt8;
 }
 
-const char* TensorTypeName(TfLiteType type) {
+const char* get_tensor_type_name(TfLiteType type) {
     switch (type) {
         case kTfLiteFloat32:
             return "float32";
@@ -32,16 +32,12 @@ const char* TensorTypeName(TfLiteType type) {
     }
 }
 
-bool HasValidInt8Quantization(const TfLiteTensor* tensor) {
-    return tensor != nullptr &&
-           tensor->type == kTfLiteInt8 &&
-           tensor->params.scale > 0.0f;
+bool has_valid_qint8(const TfLiteTensor* tensor) {
+    return tensor != nullptr && tensor->type == kTfLiteInt8 && tensor->params.scale > 0.0f;
 }
 
-float DequantizeInt8(int8_t value, float scale, int zero_point) {
-    return scale * static_cast<float>(
-        static_cast<int>(value) - zero_point
-    );
+float deqint8(int8_t value, float scale, int zero_point) {
+    return scale * static_cast<float>(static_cast<int>(value) - zero_point);
 }
 
 struct TfliteImageClassifier::Impl {
@@ -49,19 +45,15 @@ struct TfliteImageClassifier::Impl {
     std::unique_ptr<tflite::Interpreter> interpreter;
 };
 
-TfliteImageClassifier::TfliteImageClassifier(
-    const std::string& model_path
-) : impl_(std::make_unique<Impl>()) {
-    ok_ = Load(model_path);
+TfliteImageClassifier::TfliteImageClassifier(const std::string& model_path) : impl_(std::make_unique<Impl>()) {
+    ok_ = load(model_path);
 }
 
 TfliteImageClassifier::~TfliteImageClassifier() = default;
 
-bool TfliteImageClassifier::ok() const {
-    return ok_;
-}
+bool TfliteImageClassifier::ok() const { return ok_; }
 
-const std::string& TfliteImageClassifier::error_message() const {
+const std::string& TfliteImageClassifier::errmsg() const {
     return error_message_;
 }
 
@@ -69,11 +61,9 @@ const ImageModelInputInfo& TfliteImageClassifier::input_info() const {
     return input_info_;
 }
 
-int TfliteImageClassifier::class_count() const {
-    return class_count_;
-}
+int TfliteImageClassifier::numclasses() const { return class_count_; }
 
-bool TfliteImageClassifier::Load(const std::string& model_path) {
+bool TfliteImageClassifier::load(const std::string& model_path) {
     impl_->model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
     if (!impl_->model) {
@@ -119,26 +109,26 @@ bool TfliteImageClassifier::Load(const std::string& model_path) {
         return false;
     }
 
-    if (!IsSupportedTensorType(input->type)) {
-        error_message_ = "Input tensor must be float32 or int8; got ";
-        error_message_ += TensorTypeName(input->type);
-        error_message_ += ".";
+    auto check_tensor_type = [&](const TfLiteTensor* tensor, const std::string& label) -> bool {
+        if (!is_tensor_type_supported(tensor->type)) {
+            error_message_ = label + " tensor must be float32 or int8; got ";
+            error_message_ += get_tensor_type_name(input->type);
+            error_message_ += ".";
+            return false;
+        }
+        return true;
+    }
+
+    if (!check_tensor_type(input, "Input") && !check_tensor_type(output, "Output")) {
         return false;
     }
 
-    if (!IsSupportedTensorType(output->type)) {
-        error_message_ = "Output tensor must be float32 or int8; got ";
-        error_message_ += TensorTypeName(output->type);
-        error_message_ += ".";
-        return false;
-    }
-
-    if (input->type == kTfLiteInt8 && !HasValidInt8Quantization(input)) {
+    if (input->type == kTfLiteInt8 && !has_valid_qint8(input)) {
         error_message_ = "Input int8 tensor has invalid quantization params.";
         return false;
     }
 
-    if (output->type == kTfLiteInt8 && !HasValidInt8Quantization(output)) {
+    if (output->type == kTfLiteInt8 && !has_valid_qint8(output)) {
         error_message_ = "Output int8 tensor has invalid quantization params.";
         return false;
     }
@@ -156,7 +146,7 @@ bool TfliteImageClassifier::Load(const std::string& model_path) {
     }
 
     const int input_height = input->dims->data[1];
-    const int input_width = input->dims->data[2];
+    const int input_width  = input->dims->data[2];
     const int input_channels = input->dims->data[3];
 
     if (input_height <= 0 || input_width <= 0) {
@@ -186,9 +176,9 @@ bool TfliteImageClassifier::Load(const std::string& model_path) {
         return false;
     }
 
-    input_info_.type = input->type;
+    input_info_.type   = input->type;
     input_info_.height = input_height;
-    input_info_.width = input_width;
+    input_info_.width  = input_width;
     input_info_.channels = input_channels;
     input_info_.scale = input->params.scale;
     input_info_.zero_point = input->params.zero_point;
@@ -198,9 +188,7 @@ bool TfliteImageClassifier::Load(const std::string& model_path) {
     return true;
 }
 
-bool TfliteImageClassifier::FillInputFromCamera(
-    CameraPreprocessor& camera
-) {
+bool TfliteImageClassifier::fill_input_from_camera(CameraPreprocessor& camera) {
     TfLiteTensor* input_tensor = impl_->interpreter->input_tensor(0);
 
     if (input_tensor == nullptr) {
@@ -228,8 +216,7 @@ bool TfliteImageClassifier::FillInputFromCamera(
     }
 
     if (input_tensor->type == kTfLiteInt8) {
-        int8_t* input =
-            impl_->interpreter->typed_input_tensor<int8_t>(0);
+        int8_t* input = impl_->interpreter->typed_input_tensor<int8_t>(0);
 
         if (input == nullptr) {
             error_message_ = "Could not get int8 input tensor buffer.";
@@ -252,7 +239,7 @@ bool TfliteImageClassifier::FillInputFromCamera(
     return false;
 }
 
-bool TfliteImageClassifier::Invoke() {
+bool TfliteImageClassifier::invoke() {
     if (impl_->interpreter->Invoke() != kTfLiteOk) {
         error_message_ = "TensorFlow Lite invocation failed.";
         return false;
@@ -261,23 +248,17 @@ bool TfliteImageClassifier::Invoke() {
     return true;
 }
 
-std::vector<float> TfliteImageClassifier::ReadOutputScores() const {
-    const TfLiteTensor* output_tensor =
-        impl_->interpreter->output_tensor(0);
+std::vector<float> TfliteImageClassifier::read_output_scores() const {
+    const TfLiteTensor* output_tensor = impl_->interpreter->output_tensor(0);
 
     std::vector<float> scores(class_count_, 0.0f);
 
-    if (output_tensor == nullptr) {
-        return scores;
-    }
+    if (output_tensor == nullptr) return scores;
 
     if (output_tensor->type == kTfLiteFloat32) {
-        const float* output =
-            impl_->interpreter->typed_output_tensor<float>(0);
+        const float* output = impl_->interpreter->typed_output_tensor<float>(0);
 
-        if (output == nullptr) {
-            return scores;
-        }
+        if (output == nullptr) return scores;
 
         std::copy(
             output,
@@ -289,15 +270,12 @@ std::vector<float> TfliteImageClassifier::ReadOutputScores() const {
     }
 
     if (output_tensor->type == kTfLiteInt8) {
-        const int8_t* output =
-            impl_->interpreter->typed_output_tensor<int8_t>(0);
+        const int8_t* output = impl_->interpreter->typed_output_tensor<int8_t>(0);
 
-        if (output == nullptr) {
-            return scores;
-        }
+        if (output == nullptr) return scores;
 
         for (int idx = 0; idx < class_count_; ++idx) {
-            scores[idx] = DequantizeInt8(
+            scores[idx] = deqint8(
                 output[idx],
                 output_tensor->params.scale,
                 output_tensor->params.zero_point
@@ -310,17 +288,13 @@ std::vector<float> TfliteImageClassifier::ReadOutputScores() const {
     return scores;
 }
 
-ClassificationResult TfliteImageClassifier::Predict(
-    CameraPreprocessor& camera
-) {
+ClassificationResult TfliteImageClassifier::predict(CameraPreprocessor& camera) {
     ClassificationResult result;
 
-    if (!ok_) {
-        return result;
-    }
+    if (!ok_) return result;
 
     try {
-        if (!FillInputFromCamera(camera)) {
+        if (!fill_input_from_camera(camera)) {
             return result;
         }
     } catch (const std::exception& e) {
@@ -328,11 +302,9 @@ ClassificationResult TfliteImageClassifier::Predict(
         return result;
     }
 
-    if (!Invoke()) {
-        return result;
-    }
+    if (!invoke()) return result;
 
-    result.scores = ReadOutputScores();
+    result.scores = read_output_scores();
 
     if (result.scores.empty()) {
         return result;
