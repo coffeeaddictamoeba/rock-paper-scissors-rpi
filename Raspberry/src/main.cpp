@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 
     TfliteImageClassifier classifier(cf.model);
     if (!classifier.ok()) {
-        std::cerr << classifier.errmsg() << "\n";
+        fprintf(stderr, "[ERROR] %s\n", classifier.errmsg().c_str());
         return EXIT_FAILURE;
     }
 
