@@ -57,8 +57,14 @@ const std::string& TfliteImageClassifier::errmsg() const {
     return error_message_;
 }
 
-const ImageModelInputInfo& TfliteImageClassifier::input_info() const {
+const ImageModelInputInfo& TfliteImageClassifier::get_input_params() const {
     return input_info_;
+}
+
+void TfliteImageClassifier::set_input_params(int height, int width, int channels=3) {
+    input_info_.height = height;
+    input_info_.width  = width;
+    input_info_.channels = channels;
 }
 
 int TfliteImageClassifier::numclasses() const { return class_count_; }
@@ -197,8 +203,7 @@ bool TfliteImageClassifier::fill_input_from_camera(CameraPreprocessor& camera) {
     }
 
     if (input_tensor->type == kTfLiteFloat32) {
-        float* input =
-            impl_->interpreter->typed_input_tensor<float>(0);
+        float* input = impl_->interpreter->typed_input_tensor<float>(0);
 
         if (input == nullptr) {
             error_message_ = "Could not get float32 input tensor buffer.";

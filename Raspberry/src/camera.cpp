@@ -63,9 +63,13 @@ void CameraPreprocessor::capture_to_int8(int8_t* dst, int input_width, int input
 }
 
 void CameraPreprocessor::capture_and_resize(int input_width, int input_height) {
-    cap_.read(frame_bgr_);
+    frame_bgr_ = cv::imread(image_path_, cv::IMREAD_COLOR);
     if (frame_bgr_.empty()) {
-        fprintf(stderr, "[ERROR] Could not capture image\n");
+        fprintf(
+            stderr, 
+            "[ERROR] Could not open the image: %s\n", 
+            image_path_.c_str()
+        );
     }
     
     cv::resize(

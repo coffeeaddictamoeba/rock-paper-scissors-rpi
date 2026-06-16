@@ -6,23 +6,20 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 
+#include "defaults.h"
+
 class CameraPreprocessor {
 public:
-    explicit CameraPreprocessor() {
-        std::string pipeline =
-            "libcamerasrc ! "
-            "video/x-raw,width=640,height=480,framerate=15/1,format=NV12 ! "
-            "videoconvert ! "
-            "video/x-raw,format=BGR ! "
-            "appsink drop=true max-buffers=1 sync=false";
+    explicit CameraPreprocessor(const std::string& image_path) {
+        image_path_ = std::move(image_path);
+        height_ = IMG_HEIGHT;
+        width_  = IMG_WIDTH;
+    }
 
-        cap_.open(pipeline, cv::CAP_GSTREAMER);
-        if (!cap_.isOpened()) { 
-            fprintf(
-                stderr, 
-                "[ERROR] Could not open Raspberry Pi camera\n"
-            );
-        }
+    explicit CameraPreprocessor(const std::string& image_path, int height, int width) {
+        image_path_ = std::move(image_path);
+        height_ = height;
+        width_  = width;
     }
 
     void capture_to_float(
@@ -52,8 +49,10 @@ private:
     );
     
 private:
-    cv::VideoCapture cap_;
     cv::Mat frame_bgr_;
     cv::Mat resized_bgr_;
     cv::Mat resized_rgb_;
+    std::string& image_path_;
+    int height_;
+    int width_;
 };

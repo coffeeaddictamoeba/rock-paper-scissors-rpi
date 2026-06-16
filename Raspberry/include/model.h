@@ -40,7 +40,12 @@ public:
 
     bool ok() const;
     const std::string& errmsg() const;
-    const ImageModelInputInfo& input_info() const;
+    const ImageModelInputInfo& get_input_params() const;
+    void set_input_params(
+        int height,
+        int width,
+        int channels
+    );
     int numclasses() const;
 
     ClassificationResult predict(CameraPreprocessor& camera);
