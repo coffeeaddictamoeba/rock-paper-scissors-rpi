@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "train-model",
+      "type": "shell",
+      "command": "make train",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "train-quick",
+      "type": "shell",
+      "command": "make train-quick",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

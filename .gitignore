@@ -67,3 +67,16 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Python (Training/)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated training outputs
+data_bmp/
+artifacts/
+
+# keep our hand-written root Makefile (the CMake-generated one lives in build/, already ignored)
+!/Makefile

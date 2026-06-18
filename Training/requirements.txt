@@ -1,0 +1,11 @@
+# Python training dependencies for the Rock-Paper-Scissors detectors.
+#
+# Pinned to the FHOO EAI 2026 course toolchain (Python 3.10) so the model trained
+# here matches the TensorFlow Lite runtime used on the Raspberry Pi.
+# Keras 3.x (course uses 3.12.1) is installed transitively by TensorFlow 2.16.
+#
+# NOTE: TensorFlow 2.16.1 has no wheels for Python 3.13+. Use Python 3.10–3.12.
+
+tensorflow==2.16.1
+numpy==1.26.4
+pillow==10.4.0
