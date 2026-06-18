@@ -1,0 +1,7 @@
+# Normalize line endings. Keep scripts/Makefile/Dockerfile LF so they work inside
+# the Linux dev container even when the repo is checked out on Windows.
+* text=auto
+*.sh        text eol=lf
+*.py        text eol=lf
+Makefile    text eol=lf
+Dockerfile  text eol=lf
