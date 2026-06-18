@@ -1,69 +1,33 @@
-#pragma once
-
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "tensorflow/lite/c/common.h"
+#include "bmp.h"
 
-class CameraPreprocessor;
-
-struct ImageModelInputInfo {
-    TfLiteType type = kTfLiteNoType;
-
-    int height = 0;
-    int width = 0;
-    int channels = 0;
-
-    float scale = 1.0f;
-    int zero_point = 0;
+struct ChoicePrediction {
+  int choice;
+  float confidence;
+  std::vector<float> probabilities;
 };
 
-struct ClassificationResult {
-    int class_index = -1;
-    float score = 0.0f;
+class TfliteChoiceClassifier {
+ public:
+  explicit TfliteChoiceClassifier(const std::string& model_path);
+  ~TfliteChoiceClassifier();
 
-    // These may be probabilities, logits, or scores depending on your model.
-    std::vector<float> scores;
-};
+  bool ok() const { return ok_; }
+  const std::string& error_message() const { return error_message_; }
 
-class TfliteImageClassifier {
-public:
-    explicit TfliteImageClassifier(const std::string& model_path);
-    explicit TfliteImageClassifier(const std::string& model_path, int height, int width) {
-        input_info_.height = height;
-        input_info_.width  = width;
-    }
+  ChoicePrediction Predict(const ImageMatrix& normalized_image_bmp);
 
-    ~TfliteImageClassifier();
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 
-    bool ok() const;
-    const std::string& errmsg() const;
-    const ImageModelInputInfo& get_input_params() const;
-    void set_input_params(
-        int height,
-        int width,
-        int channels
-    );
-    int numclasses() const;
+  bool ok_ = false;
+  std::string error_message_;
 
-    ClassificationResult predict(CameraPreprocessor& camera);
-
-private:
-    struct Impl;
-
-    bool load(const std::string& model_path);
-    bool fill_input_from_camera(CameraPreprocessor& camera);
-    bool invoke();
-    std::vector<float> read_output_scores() const;
-
-private:
-    std::unique_ptr<Impl> impl_;
-
-    bool ok_ = false;
-    std::string error_message_;
-
-    ImageModelInputInfo input_info_;
-    int class_count_ = 0;
+  bool Load(const std::string& model_path);
+  bool CopyInput(const ImageMatrix& normalized_image_bmp);
+  std::vector<float> ReadOutput() const;
 };

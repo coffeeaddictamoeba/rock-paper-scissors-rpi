@@ -3,8 +3,9 @@
 #include <cstring>
 #include <string>
 
-#include "../include/defaults.h"
 #include "../include/model.h"
+
+constexpr int NO_CHOICE = -1;
 
 struct config {
     std::string model     = MODEL_DEFAULT;
@@ -33,44 +34,55 @@ int parse_args(int argc, char** argv, config& cf) {
     }
 }
 
-int main(int argc, char** argv) {
-    config cf; 
-    parse_args(argc, argv, cf);
+int main(int argc, char* argv[]) {
+  config cf;
+  parse_args(argc, argv, cf);
 
-    if (cf.verbose) {
-        printf(
-            "[INFO] Running rock-paper-scissors with:\n\t"
-            " Model:  %s\n\t "
-            " Predict: %s\n\t "
-            " Record: %s\n",
-            cf.model.c_str(), 
-            cf.pred_file.c_str(), 
-            cf.rec_file.c_str()
-        );
-    }
+  if (cf.verbose) {
+    printf(
+      "[INFO] Running rock-paper-scissors with:\n\t"
+      " Model:  %s\n\t "
+      " Predict: %s\n\t "
+      " Record: %s\n",
+      cf.model.c_str(), 
+      cf.pred_file.c_str(), 
+      cf.rec_file.c_str()
+    );
+  }
 
-    CameraPreprocessor camera(cf.pred_file);
+  try {
+    ImageMatrix image = readBMP(cf.pred_file);
 
-    TfliteImageClassifier classifier(cf.model);
+    TfliteChoiceClassifier classifier(cf.model);
+
     if (!classifier.ok()) {
-        fprintf(stderr, "[ERROR] %s\n", classifier.errmsg().c_str());
-        return EXIT_FAILURE;
+        fprintf(
+            stderr, 
+            "[ERROR] Model error: %s\n", 
+            classifier.error_message().c_str()
+        );
+        return NO_CHOICE;
     }
 
-    const ImageModelInputInfo& input = classifier.input_info();
+    ChoicePrediction prediction = classifier.Predict(image);
+
+    if (prediction.choice < 0) {
+        fprintf(stderr, "[ERROR] Prediction failed: %s\n", classifier.error_message().c_str());
+        return NO_CHOICE;
+    }
 
     if (cf.verbose) {
-        printf(
-            "[INFO] Input: %dx%dx%d\n", 
-            input.height,
-            input.width,
-            input.channels
-        );
+        printf("[INFO] Pi's choice: %d\n", prediction.choice);
+        printf("[INFO] Pi's confidence: %f\n", prediction.confidence);
+        printf("[INFO] Probabilities: \n");
+        for (std::size_t i = 0; i < prediction.probabilities.size(); ++i) {
+            printf("\t%zu : %f\n", i, prediction.probabilities[i]);
+        }
     }
+  } catch (const std::exception& e) {
+    fprintf(stderr, "[ERROR] Failed to get a prediction: %s\n", e.what());
+    return NO_CHOICE;
+  }
 
-    ClassificationResult result = classifier.predict(camera);
-
-    printf("[INFO] Class: %d, score: %f\n", result.class_index, result.score);
-
-    return EXIT_SUCCESS;
+  return prediction.choice;
 }
