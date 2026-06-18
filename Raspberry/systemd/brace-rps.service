@@ -1,0 +1,14 @@
+[Unit]
+Description=Rock Paper Scissors Service
+
+[Service]
+Type=simple
+User=1000
+Group=1000
+WorkingDirectory=/usr/local/bin
+ExecStart=/usr/bin/python3 /usr/local/bin/rockpaperscissors_wrapper.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
