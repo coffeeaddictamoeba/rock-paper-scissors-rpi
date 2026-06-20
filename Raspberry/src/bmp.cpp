@@ -1,4 +1,4 @@
-#include "../include/bmp.h"
+#include "bmp.h"
 
 ImageMatrix readBMP(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);

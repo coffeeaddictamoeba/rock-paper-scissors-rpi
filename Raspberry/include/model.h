@@ -12,7 +12,7 @@ struct ChoicePrediction {
 
 class TfliteChoiceClassifier {
  public:
-  explicit TfliteChoiceClassifier(const std::string& model_path);
+  explicit TfliteChoiceClassifier(const std::string& model_path, int num_classes);
   ~TfliteChoiceClassifier();
 
   bool ok() const { return ok_; }
@@ -27,7 +27,7 @@ class TfliteChoiceClassifier {
   bool ok_ = false;
   std::string error_message_;
 
-  bool Load(const std::string& model_path);
+  bool Load(const std::string& model_path, int num_classes);
   bool CopyInput(const ImageMatrix& normalized_image_bmp);
   std::vector<float> ReadOutput() const;
 };

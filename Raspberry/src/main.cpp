@@ -3,7 +3,7 @@
 #include <cstring>
 #include <string>
 
-#include "../include/model.h"
+#include "model.h"
 
 constexpr int NO_CHOICE = -1;
 
@@ -11,15 +11,18 @@ struct config {
     std::string model     = MODEL_DEFAULT;
     std::string pred_file = PREDICTION_FILE_DEFAULT;
     std::string rec_file  = RECORDING_DATA_DEFAULT;
+    int num_classes = 2;
     bool verbose = false;
 };
 
-int parse_args(int argc, char** argv, config& cf) {
+void parse_args(int argc, char** argv, config& cf) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--predict") == 0 && i+1 < argc) {
             cf.pred_file = argv[++i];
         } else if (strcmp(argv[i], "--model") == 0 && i+1 < argc) {
             cf.model = argv[++i];
+        } else if (strcmp(argv[i], "--num-classes") == 0) {
+            cf.num_classes = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--record-to") == 0 && i+1 < argc) {
             cf.rec_file = argv[++i];
         } else if (strcmp(argv[i], "--verbose") == 0) {
@@ -53,7 +56,7 @@ int main(int argc, char* argv[]) {
   try {
     ImageMatrix image = readBMP(cf.pred_file);
 
-    TfliteChoiceClassifier classifier(cf.model);
+    TfliteChoiceClassifier classifier(cf.model, cf.num_classes);
 
     if (!classifier.ok()) {
         fprintf(
@@ -79,10 +82,13 @@ int main(int argc, char* argv[]) {
             printf("\t%zu : %f\n", i, prediction.probabilities[i]);
         }
     }
+
+    return prediction.choice;
+
   } catch (const std::exception& e) {
     fprintf(stderr, "[ERROR] Failed to get a prediction: %s\n", e.what());
     return NO_CHOICE;
   }
 
-  return prediction.choice;
+  return NO_CHOICE; // Should not reach
 }
