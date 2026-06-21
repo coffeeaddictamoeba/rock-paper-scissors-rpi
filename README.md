@@ -10,7 +10,7 @@ Real-time game of Rock-Paper-Scissors with RPI
 
   - If using `tflite-demo-container` (recommended), run `make train`
   - Don't forget to prepare the data and change the name of data directory (`DEFAULT_DATA_DIR ="EAI4IL-project-data"`) inside the script!
-- If models are ready (you can take them from `Models/` folder here), compile the C++ code, placing it inside `src `directory of `tflite-demo-container`.
+- If models are ready (you can take them from `Models/` folder here), compile the C++ code with `make build`, placing it inside `src` directory of `tflite-demo-container`.
 
   - As the default name for building is `pi-demo`, you may want to change it inside `.env`.
   - I recommend setting `APP_NAME=rockpaperscissors`.
