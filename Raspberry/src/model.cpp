@@ -18,26 +18,6 @@
 
 namespace {
 
-// -----------------------------------------------------------------------------
-// IMPORTANT:
-//
-// Replace these values with the real numbers from:
-//
-//   artifacts/gesture/normalization.json
-//   artifacts/bracelet/normalization.json
-//
-// Example:
-//   "mean": [123.4, 118.2, 104.7]
-//   "std":  [52.1, 50.2, 49.3]
-//
-// Then write:
-//   constexpr std::array<float, 3> GESTURE_INPUT_MEAN = {
-//       123.4F, 118.2F, 104.7F
-//   };
-//
-// Do NOT leave these as 0/1, or the model will still receive the wrong input.
-// -----------------------------------------------------------------------------
-
 constexpr std::array<float, 3> GESTURE_INPUT_MEAN = {
     96.131F,
     102.354F,
@@ -133,19 +113,10 @@ TfliteChoiceClassifier::TfliteChoiceClassifier(
 
 TfliteChoiceClassifier::~TfliteChoiceClassifier() = default;
 
-bool TfliteChoiceClassifier::Load(
-    const std::string& model_path,
-    int num_classes) {
+bool TfliteChoiceClassifier::Load(const std::string& model_path, int num_classes) {
   impl_->model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
   impl_->num_classes = num_classes;
 
-  // Pick normalization based on model type.
-  //
-  // gesture model:
-  //   output classes = 3
-  //
-  // bracelet model:
-  //   output classes = 2
   if (num_classes == 3) {
     impl_->input_mean = GESTURE_INPUT_MEAN;
     impl_->input_std = GESTURE_INPUT_STD;
@@ -254,11 +225,6 @@ bool TfliteChoiceClassifier::CopyInput(const ImageMatrix& image_bmp) {
       return 0.0F;
     }
 
-    // This matches Python:
-    //
-    //   normalized = (pixel - mean[channel]) / std[channel]
-    //
-    // Pixel value is raw 0..255, NOT divided by 255.
     return (static_cast<float>(value) - impl_->input_mean[idx]) / stddev;
   };
 
@@ -270,9 +236,7 @@ bool TfliteChoiceClassifier::CopyInput(const ImageMatrix& image_bmp) {
     return 0.299F * r + 0.587F * g + 0.114F * b;
   };
 
-  auto write_float_pixel = [&](float* input,
-                               std::size_t& idx,
-                               const Pixel& pixel) {
+  auto write_float_pixel = [&](float* input, std::size_t& idx, const Pixel& pixel) {
     if (IMG_CHANNELS == 1) {
       input[idx++] = grayscale(pixel);
     } else if (IMG_CHANNELS == 3) {
@@ -282,9 +246,7 @@ bool TfliteChoiceClassifier::CopyInput(const ImageMatrix& image_bmp) {
     }
   };
 
-  auto write_int8_pixel = [&](int8_t* input,
-                              std::size_t& idx,
-                              const Pixel& pixel) {
+  auto write_int8_pixel = [&](int8_t* input, std::size_t& idx, const Pixel& pixel) {
     if (IMG_CHANNELS == 1) {
       input[idx++] = QuantizeInt8(
           grayscale(pixel),
@@ -309,8 +271,7 @@ bool TfliteChoiceClassifier::CopyInput(const ImageMatrix& image_bmp) {
   };
 
   if (IMG_CHANNELS != 1 && IMG_CHANNELS != 3) {
-    error_message_ =
-        "Only 1-channel grayscale or 3-channel RGB input is supported.";
+    error_message_ = "Only 1-channel grayscale or 3-channel RGB input is supported.";
     return false;
   }
 
@@ -352,18 +313,13 @@ std::vector<float> TfliteChoiceClassifier::ReadOutput() const {
   if (output_tensor->type == kTfLiteFloat32) {
     const float* output = impl_->interpreter->typed_output_tensor<float>(0);
 
-    return std::vector<float>(
-        output,
-        output + impl_->num_classes);
+    return std::vector<float>(output, output + impl_->num_classes);
   }
 
-  std::vector<float> probabilities(
-      static_cast<std::size_t>(impl_->num_classes),
-      0.0F);
+  std::vector<float> probabilities(static_cast<std::size_t>(impl_->num_classes), 0.0F);
 
   if (output_tensor->type == kTfLiteInt8) {
-    const int8_t* output =
-        impl_->interpreter->typed_output_tensor<int8_t>(0);
+    const int8_t* output = impl_->interpreter->typed_output_tensor<int8_t>(0);
 
     for (std::size_t idx = 0; idx < probabilities.size(); ++idx) {
       probabilities[idx] = DequantizeInt8(
@@ -378,15 +334,12 @@ std::vector<float> TfliteChoiceClassifier::ReadOutput() const {
   return probabilities;
 }
 
-ChoicePrediction TfliteChoiceClassifier::Predict(
-    const ImageMatrix& image_bmp) {
+ChoicePrediction TfliteChoiceClassifier::Predict(const ImageMatrix& image_bmp) {
   ChoicePrediction prediction;
   prediction.choice = -1;
   prediction.confidence = 0.0F;
 
-  if (!ok_) {
-    return prediction;
-  }
+  if (!ok_) return prediction;
 
   if (!CopyInput(image_bmp)) {
     ok_ = false;
@@ -402,11 +355,14 @@ ChoicePrediction TfliteChoiceClassifier::Predict(
   prediction.probabilities = ReadOutput();
 
   const auto best = std::max_element(
-      prediction.probabilities.begin(),
-      prediction.probabilities.end());
+    prediction.probabilities.begin(),
+    prediction.probabilities.end()
+  );
 
-  prediction.choice = static_cast<int>(
-      std::distance(prediction.probabilities.begin(), best));
+  prediction.choice = static_cast<int>(std::distance(
+    prediction.probabilities.begin(), 
+    best)
+  );
 
   prediction.confidence = *best;
 
